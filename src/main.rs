@@ -53,17 +53,19 @@ fn main() -> io::Result<()> {
     )
     .expect("Incorrect day entered");
 
-
+    
     let time = Time::from_hms(cli.hour, cli.minute, cli.second).expect("Incorrect time entered");
     let current = OffsetDateTime::now_utc();
     let datetime = OffsetDateTime::new_in_offset(date, time, current.offset());
     let mut system_time = SystemTime::from(datetime);
-    
+    let offset = Duration::from_secs(cli.offset);
+    let mut cumulative_offset = Duration::default();
     println!("Files to be updated (in this order):");
     for entry in &entries {
         if let Ok(file_name) = entry.file_name().into_string() {
             let current_time = OffsetDateTime::from(entry.metadata()?.modified()?);
-            println!("{}: {} -> {}", file_name, current_time, datetime);    
+            println!("{}: {} -> {}", file_name, current_time, datetime + cumulative_offset);    
+            cumulative_offset += offset;
         }
     }
     
@@ -76,7 +78,6 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
     
-    let offset = Duration::from_secs(cli.offset);
     for entry in entries {
         let file = File::open(entry.path())?;
         file.set_modified(system_time)?;
