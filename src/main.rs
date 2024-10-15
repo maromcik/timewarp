@@ -52,10 +52,30 @@ fn main() -> io::Result<()> {
         cli.day,
     )
     .expect("Incorrect day entered");
+
+
     let time = Time::from_hms(cli.hour, cli.minute, cli.second).expect("Incorrect time entered");
     let current = OffsetDateTime::now_utc();
     let datetime = OffsetDateTime::new_in_offset(date, time, current.offset());
     let mut system_time = SystemTime::from(datetime);
+    
+    println!("Files to be updated (in this order):");
+    for entry in &entries {
+        if let Ok(file_name) = entry.file_name().into_string() {
+            let current_time = OffsetDateTime::from(entry.metadata()?.modified()?);
+            println!("{}: {} -> {}", file_name, current_time, datetime);    
+        }
+    }
+    
+    println!("Do you want to proceed? (y/n)");
+    let mut buffer = String::new();
+    let stdin = io::stdin(); // We get `Stdin` here.
+    stdin.read_line(&mut buffer)?;
+    buffer = buffer.to_lowercase().trim().to_string();
+    if buffer != "y" && buffer != "yes" {
+        return Ok(());
+    }
+    
     let offset = Duration::from_secs(cli.offset);
     for entry in entries {
         let file = File::open(entry.path())?;
